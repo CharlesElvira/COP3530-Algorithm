@@ -33,7 +33,6 @@ int main(int argc, char** argv)
                 std::cin.clear(); //clear the input
                 std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); //reset cin ignore bad input
                 std::cout << "\n-- Wrong size - try again --\n";
-                std::cin >> size; // store size in
                 flag = true;
 
             } else
