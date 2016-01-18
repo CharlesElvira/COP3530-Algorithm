@@ -2,11 +2,11 @@
 #include<stdlib.h>
 #include<limits>
 
-void InsertionSort(long *listOfInteger, long size)
+void InsertionSort(long double *listOfInteger, long size)
 {
     for ( long i = 0; i < size; i++ )
     {
-        long temp = listOfInteger[i]; //store one element in a temporary 
+        long double temp = listOfInteger[i]; //store one element in a temporary 
         long j;
         for ( j = i - 1; j >= 0 && temp < listOfInteger[j]; j-- )
         {
@@ -19,7 +19,7 @@ void InsertionSort(long *listOfInteger, long size)
 int main(int argc, char** argv)
 {
     long size;
-    long *list;
+    long double *list;
     bool flag = true;
 
     if ( argc <= 1 ) //if no argument passed to the program
@@ -40,9 +40,9 @@ int main(int argc, char** argv)
                 flag = false;
             }
         }
-        try
+        try // try to declare long double size
         {
-            list = new long[size];
+          list = new long double[size];
         } catch (const std::bad_alloc&)
         { //catch bad allocation
             std::cout << "\nErreur in the size of the input can't be negative\n";
@@ -75,7 +75,7 @@ int main(int argc, char** argv)
 
         try
         {
-            list = new long[size];
+            list = new long double[size];
 
             for ( long i = 0; i < argc; i++ )
             {
