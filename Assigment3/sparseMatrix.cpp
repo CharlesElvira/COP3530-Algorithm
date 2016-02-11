@@ -1,59 +1,40 @@
-#include<iostream>
-#include <time.h>
-#include <stdlib.h>
-#include <vector>
-
+#include <iostream>
 using namespace std;
 
 class Node
 {
 public:
     Node( );
-    Node( int column, int value );
-    void setNextNode( Node *next );
-    Node* getNode( );
+    Node( int column, int row, int value );
+    void store( int column, int row, int value );
+    void store( Node *next );
     int getValue( );
     int getColumn( );
+    int getRow( );
     void printNode( );
-    Node( const Node & obj );
-    Node( Node * obj );
+    void setRow( int row );
+    Node *getNext( );
+    Node( const Node &obj );
     virtual ~ Node( );
-
 private:
-    int column, value;
-    Node *nextNode;
+    int column, value, row;
+    Node *next;
 };
 
 Node::Node( )
 {
-    column = 0;
-    value = 0;
-    nextNode = NULL;
+    this->column = - 1;
+    this->row = - 1;
+    this->value = 0;
+    next = NULL;
 }
 
-Node::Node( Node * obj )
-{
-    if ( obj->getNode( ) != NULL )
-    {
-        column = obj->column;
-        value = obj->value;
-        if ( obj->nextNode != NULL )
-        {
-            nextNode = new Node( obj->nextNode );
-        }
-    }
-}
-
-Node::Node( int column, int value )
+Node::Node( int column, int row, int value )
 {
     this->column = column;
+    this->row = row;
     this->value = value;
-    nextNode = NULL;
-}
-
-void Node::setNextNode( Node *next )
-{
-    this->nextNode = next;
+    next = NULL;
 }
 
 int Node::getColumn( )
@@ -61,30 +42,9 @@ int Node::getColumn( )
     return column;
 }
 
-int Node::getValue( )
-{
-    return value;
-}
-
-Node * Node::getNode( )
-{
-    if ( nextNode != NULL )
-    {
-        return nextNode;
-    }
-}
-
-Node::Node( const Node & obj )
-{
-
-    column = obj.column;
-    value = obj.value;
-    nextNode = obj.nextNode;
-}
-
 void Node::printNode( )
 {
-    if ( nextNode != NULL )
+    if ( next != NULL )
     {
         cout << value << " ";
     }
@@ -94,11 +54,59 @@ void Node::printNode( )
     }
 }
 
+Node* Node::getNext( )
+{
+    return next;
+}
+
+int Node::getRow( )
+{
+    return row;
+}
+
+void Node::setRow( int row )
+{
+    this->row = row;
+}
+
+Node::Node( const Node& obj )
+{
+    this->column = obj.column;
+    this->row = obj.row;
+    this->value = obj.value;
+    this->next = obj.next;
+}
+
+void Node::store( Node* next )
+{
+    this->next = next;
+}
+
+int Node::getValue( )
+{
+    return value;
+}
+
+void Node::store( int column, int row, int value )
+{
+    if ( this->column == - 1 )
+    {
+        this->column = column;
+        this->row = row;
+        this->value = value;
+        next = NULL;
+    }
+    else
+    {
+        next = new Node( column, row, value );
+    }
+}
+
 Node::~ Node( )
 {
-    if ( nextNode != NULL )
+    if ( next != NULL )
     {
-        delete nextNode;
+        delete next;
     }
 }
 
@@ -106,116 +114,41 @@ class linkedList
 {
 public:
     linkedList( );
-    linkedList( linkedList *obj );
-    linkedList( const linkedList &obj );
-    int getSize( );
-    void setHighestCol( int high );
-    int getHighestCol( );
-    void insertNode( Node* obj );
-    void insertNode( int column, int value );
-    linkedList* addLinkedList( linkedList *ll );
+    void storeNode( int column, int row, int value );
+    int getLinkedListSize( );
+    void storeNode();
+    void searchValue( int value );
     Node* getNode( int position );
-    Node* getNode( );
-    Node* deleteNode( int position );
+    void insertNode( Node *element, int position );
     void printLinkedList( );
+    linkedList( const linkedList &obj );
     virtual ~ linkedList( );
 private:
-    Node *head = NULL;
-    Node *endNode = NULL;
-    int highestCol;
+    Node *head, *end;
     int size;
 };
 
 linkedList::linkedList( )
 {
     head = NULL;
-    endNode = head;
+    end = NULL;
     size = 0;
 }
 
-linkedList::linkedList( linkedList *obj )
+void linkedList::searchValue( int value )
 {
-
-    head = new Node( obj->head );
-    endNode = obj->endNode;
-    size = obj->size;
-
-}
-
-linkedList::linkedList( const linkedList &obj )
-{
-
-    head = new Node( obj.head );
-    endNode = obj.endNode;
-    size = obj.size;
-
-}
-
-void linkedList::insertNode( Node* obj )
-{
-    Node* temp = new Node( obj->getColumn( ), obj->getValue( ) );
-    if ( head == NULL )
+    for ( int i = 0; i < getLinkedListSize( ); i ++ )
     {
-        head = temp;
-        endNode = head;
-    }
-    else
-    {
-        endNode->setNextNode( temp );
-        endNode = temp;
-    }
-    size ++;
-}
-
-linkedList* linkedList::addLinkedList( linkedList *ll )
-{
-    int greatersize = 0;
-    linkedList *result = new linkedList( );
-    if ( ll->getSize( ) > size )
-    {
-        greatersize = ll->getSize( );
-    }
-    else
-    {
-        greatersize = size;
-    }
-    for ( int i = 0; i < greatersize; i ++ )
-    {
-        if ( ll->getNode( i ) != NULL )
+        if ( getNode( i )->getValue( ) == value )
         {
-            if ( getNode( i ) != NULL )
-            {
-                result->insertNode( i, ll->getNode( i )->getValue( ) + getNode( i )->getValue( ) );
-            }
-            else
-            {
-                result->insertNode( i, ll->getNode( i )->getValue( ) );
-            }
-        }
-        else
-        {
-            if ( getNode( i ) != NULL )
-            {
-                result->insertNode( i, getNode( i )->getValue( ) );
-            }
+            cout << getNode( i )->getRow( ) << getNode( i )->getColumn( );
         }
     }
-    return result;
 }
 
-int linkedList::getSize( )
+int linkedList::getLinkedListSize( )
 {
     return size;
-}
-
-void linkedList::setHighestCol( int high )
-{
-    this->highestCol = high;
-}
-
-int linkedList::getHighestCol( )
-{
-    return highestCol;
 }
 
 void linkedList::printLinkedList( )
@@ -224,93 +157,201 @@ void linkedList::printLinkedList( )
     for ( int i = 0; i < size; i ++ )
     {
         iterator->printNode( );
-        iterator = iterator->getNode( );
+        iterator = iterator->getNext( );
     }
     cout << endl;
 }
 
-void linkedList::insertNode( int column, int value )
+Node* linkedList::getNode( int position )
 {
-    Node *temp = new Node( column, value );
-    if ( head == NULL )
+    Node *tempHead = head;
+    for ( int i = 0; i < size && i < position; i ++ )
+    {
+        tempHead = tempHead->getNext( );
+    }
+    return tempHead;
+}
+void linkedList::storeNode()
+{
+    Node *temp = new Node( );
+     if ( head == NULL )
     {
         head = temp;
-        endNode = head;
+        end = NULL;
+        size ++;
     }
     else
     {
-        endNode->setNextNode( temp );
-        endNode = temp;
+        Node *tempHead = head;
+
+        while ( tempHead->getNext( ) != NULL )
+        {
+            tempHead = tempHead->getNext( );
+
+        }
+        tempHead->store( temp );
+        end = tempHead;
+        size ++;
     }
-    size ++;
-
 }
-
-Node* linkedList::getNode( )
+void linkedList::storeNode( int column, int row, int value )
 {
-    return head;
-}
+    Node *temp = new Node( column, row, value );
 
-Node * linkedList::getNode( int position )
-{
-    Node *prior;
-    Node *iterator = head;
-
-    if ( position <= size )
+    if ( head == NULL )
     {
-        if ( position != 0 )
-        {
-            for ( int i = 1; i <= position; i ++ )
-            {
-                prior = iterator;
-
-            }
-            return prior->getNode( );
-        }
-        else
-        {
-            return head;
-        }
+        head = temp;
+        end = NULL;
+        size ++;
     }
-    return NULL;
+    else
+    {
+        Node *tempHead = head;
+
+        while ( tempHead->getNext( ) != NULL )
+        {
+            tempHead = tempHead->getNext( );
+
+        }
+        tempHead->store( temp );
+        end = tempHead;
+        size ++;
+    }
 }
 
-Node* linkedList::deleteNode( int position )//Worst case complexity O(n)
+void linkedList::insertNode( Node *element, int position )
 {
-    Node *iterator = head;
-    if ( position < size )
-    {
-        if ( position != 0 )
-        {
-            for ( int i = 0; i < position - 1; i ++ )
-            {
-                iterator = iterator->getNode( );
-            }
-            Node *temp = iterator->getNode( );
-            iterator->setNextNode( iterator->getNode( )->getNode( ) );
-            temp->setNextNode( NULL );
-            delete temp;
-            size --;
+    Node *temp = element;
+    Node *previous = getNode( position );
+    Node *after = getNode( position - 1 );
+    temp->store( previous );
+    after->store( temp );
+}
 
-        }
-        else
-        {
-            Node *temp = head;
-            head = head->getNode( );
-            temp->setNextNode( NULL );
-            delete temp;
-            size --;
-        }
-
-    }
+linkedList::linkedList( const linkedList& obj )
+{
+    this->head = obj.head;
+    this->end = obj.end;
+    this->size = obj.size;
 }
 
 linkedList::~ linkedList( )
 {
-    if ( endNode != NULL )
-        delete endNode;
-    if ( head != NULL )
-        delete head;
+
+}
+
+class sparseRow
+{
+public:
+    sparseRow( );
+    void addColumn();
+    void addColumn( int column, int row, int value );
+    int getSizeRow( );
+    linkedList getlinkedList( );
+    void searchValue( int value );
+    sparseRow( const sparseRow &obj );
+    void sparseRowAddition( sparseRow *row, int rowNum );
+    virtual ~ sparseRow( );
+private:
+    int size;
+    linkedList *rowSparseMatrix;
+};
+
+sparseRow::sparseRow( )
+{
+    size = 0;
+    rowSparseMatrix = new linkedList( );
+}
+
+linkedList sparseRow::getlinkedList( )
+{
+    return *rowSparseMatrix;
+}
+
+void sparseRow::addColumn( int column, int row, int value )
+{
+    rowSparseMatrix->storeNode( column, row, value );
+    size ++;
+}
+void sparseRow::addColumn()
+{
+    rowSparseMatrix->storeNode();
+}
+void sparseRow::searchValue( int value )
+{
+    
+        rowSparseMatrix->searchValue( value );
+
+}
+
+void sparseRow::sparseRowAddition( sparseRow *row, int rowNum )
+{
+    int biggestrow = 0, counta = 0, countb = 0;
+    sparseRow *temp = new sparseRow( );
+    Node *a, *b;
+    if ( row->getSizeRow( ) > getSizeRow( ) )
+    {
+        biggestrow = row->getSizeRow( );
+
+    }
+    else
+    {
+        biggestrow = size;
+    }
+
+    a = row->getlinkedList().getNode(counta);
+    b = getlinkedList().getNode(countb);
+    for ( int i = 0; counta < biggestrow && countb <biggestrow; i ++ )
+    {
+
+        if ( a->getColumn( ) != i )
+        {
+            if ( b->getColumn( ) != i )
+            {
+            }
+            else
+            {
+                temp->addColumn( b->getColumn( ), rowNum, b->getValue( ) );
+                countb++;
+                b = getlinkedList().getNode(countb);
+            }
+        }
+        else
+        {
+            if ( b->getColumn( ) != i )
+            {
+                temp->addColumn( a->getColumn( ), rowNum, a->getValue( ) );
+                counta++;
+                a = getlinkedList().getNode(counta);
+            }
+            else
+            {
+                temp->addColumn( a->getColumn( ), rowNum, b->getValue() + a->getValue( ) );
+                counta++;
+                countb++;
+                a = getlinkedList().getNode(counta);
+                b = getlinkedList().getNode(countb);
+            }
+        }
+        
+    }
+    rowSparseMatrix = new linkedList( temp->getlinkedList( ) );
+}
+
+int sparseRow::getSizeRow( )
+{
+    return size;
+}
+
+sparseRow::sparseRow( const sparseRow& obj )
+{
+    this->rowSparseMatrix = obj.rowSparseMatrix;
+    this->size = obj.size;
+}
+
+sparseRow::~ sparseRow( )
+{
+
 }
 
 class sparseMatrix
@@ -318,100 +359,125 @@ class sparseMatrix
 public:
     sparseMatrix( );
     sparseMatrix( int size );
-    linkedList* getRow( int position );
-    void setRow( linkedList *row );
-    sparseMatrix* sparseMatrixAddition( sparseMatrix mat );
-
-    void setNumRow( int numrow );
-    void createRow( );
+    void addElement( int row, int column, int value );
+    void addElement( int rowindex);
+    int getSparseMatrixSize( );
+    sparseMatrix *sparseMatrixAddition( sparseMatrix mat );
+    void setSparseRow( sparseRow *row );
+    sparseRow *getSparseMatrix( );
+    void sparseMatrixSearch( int value );
     void printSparseMatrix( );
-    int getNumRow( );
+    void setSizeSparseMatrix( int size );
+    sparseMatrix( const sparseMatrix &obj );
+    virtual ~ sparseMatrix( );
 private:
-    linkedList *row;
-    int numberRow;
-    int counter;
+    int m;
+    sparseRow *row;
 };
 
 sparseMatrix::sparseMatrix( )
 {
-    counter = 0;
-    numberRow = 0;
+    m = 0;
+    row = NULL;
 }
 
 sparseMatrix::sparseMatrix( int size )
 {
-    numberRow = size;
-    row = new linkedList[size];
-    counter = 0;
+    m = size;
+    row = new sparseRow[m];
 }
 
-void sparseMatrix::setRow( linkedList *row )
+sparseMatrix::sparseMatrix( const sparseMatrix& obj )
 {
-    if ( row->getNode( 0 ) != NULL )
-    {
-        this->row[counter] = new linkedList( row );
-    }
+    this->m = obj.m;
+    this->row = obj.row;
 }
 
-int sparseMatrix::getNumRow( )
+void sparseMatrix::setSizeSparseMatrix( int size )
 {
-    return numberRow;
+    m = size;
+    row = new sparseRow[m];
 }
 
-void sparseMatrix::setNumRow( int numrow )
+void sparseMatrix::setSparseRow( sparseRow *row )
 {
-    numberRow = numrow;
-    createRow( );
-}
-
-void sparseMatrix::createRow( )
-{
-
-    row = new linkedList[numberRow];
-}
-
-linkedList* sparseMatrix::getRow( int position )
-{
-    return &row[position];
+    this->row = row;
 }
 
 void sparseMatrix::printSparseMatrix( )
 {
-    for ( int i = 0; i < numberRow; i ++ )
+    for ( int i = 0; i < m; i ++ )
     {
-        row[i].printLinkedList( );
+        row[i].getlinkedList( ).printLinkedList( );
     }
 }
 
-sparseMatrix* sparseMatrix::sparseMatrixAddition( sparseMatrix mat )
+void sparseMatrix::addElement( int rowindex, int column, int value )
 {
-    sparseMatrix *result = new sparseMatrix( );
-    result->setNumRow( mat.getNumRow( ) );
+    this->row[rowindex].addColumn( column, rowindex, value );
+}
+void sparseMatrix::addElement(int rowindex )
+{
+    this->row[rowindex].addColumn( );
+}
+int sparseMatrix::getSparseMatrixSize( )
+{
+    return m;
+}
 
-    for ( int i = 0; i < mat.getNumRow( ); i ++ )
-    {
-        
-        result->setRow( mat.getRow( i )->addLinkedList( &row[i] ) );
-        result->printSparseMatrix();
+sparseRow* sparseMatrix::getSparseMatrix( )
+{
+    if(row !=NULL){
+            return row;
     }
-    return result;
+
+}
+
+void sparseMatrix::sparseMatrixSearch( int value )
+{
+    for(int i=0;i<m;i++)
+    {
+        row[i].searchValue( value );
+    }
+    cout<<endl;
+}
+
+sparseMatrix *sparseMatrix::sparseMatrixAddition( sparseMatrix mat )
+{
+    sparseMatrix *tmp = new sparseMatrix(mat);
+    sparseRow *temprow = new sparseRow[getSparseMatrixSize( )];
+    for ( int i = 0; i < tmp->getSparseMatrixSize(); i ++ )
+    {
+       
+        row[i].sparseRowAddition( &tmp->row[i] , i );
+        temprow[i] = row[i];
+        
+    }
+    sparseMatrix *sp = new sparseMatrix( getSparseMatrixSize( ) );
+    sp->setSparseRow( row );
+    return sp;
+}
+
+sparseMatrix::~ sparseMatrix( )
+{
+
 }
 
 int main( int, char** )
 {
     //5 2 1 12 3 5 0 1 4 2 1 3 6 4 0 1 2 4 4 9 5 16 5 2 1 12 3 5 0 1 4 2 1 3 6 4 0 1 2 4 4 9 5 16
 
-
-    int numOfrows = 0, numOfElement = 0, column = 0, value = 0, highestcol = 0;
+    int numOfrows = 0,searchNum =0,search =0, numOfElement = 0, column = 0, value = 0, highestcol = 0;
     sparseMatrix *mat, *result;
     mat = new sparseMatrix[2];
     for ( int k = 0; k < 2; k ++ )
     {//which matrix
         cin>> numOfrows;
-        mat[k].setNumRow( numOfrows );
+        mat[k].setSizeSparseMatrix( numOfrows );
         for ( int i = 0; i < numOfrows; i ++ )
         {//which row
             cin>>numOfElement;
+            
             for ( int j = 0; j < numOfElement; j ++ )
             {//which column
                 cin>>column;
@@ -420,13 +486,22 @@ int main( int, char** )
                 {
                     highestcol = column;
                 }
-                mat[k].getRow( i )->insertNode( column, value );
+                mat[k].addElement( i, column, value );
             }
-            mat[k].getRow( i )->setHighestCol( highestcol );
-            highestcol = 0;
+            
         }
-        mat[k].printSparseMatrix( );
     }
+    mat[0].printSparseMatrix( );
+    mat[1].printSparseMatrix( );
+
     result = mat[0].sparseMatrixAddition( mat[1] );
     result->printSparseMatrix( );
+    cin>>searchNum;
+    for(int i = 0;i<searchNum;i++)
+    {
+        cin>>search;
+        result->sparseMatrixSearch(search);
+    }
+    
+
 }
