@@ -23,7 +23,7 @@ string deleteWhiteSpace( string expression )
     int n = expression.size( );
     string temp;
 
-    for ( int i = 0; i < n; i++ )
+    for ( int i = 0; i < n; i ++ )
     {
         if ( expression.at( i ) != ' ' )
         {
@@ -33,102 +33,92 @@ string deleteWhiteSpace( string expression )
     return temp;
 }
 
-double calculate( char operators, double num1, double num2 )
+string calculate( char operators, double num1, double num2, int &error )
 {
+    double result;
+    stringstream ss;
+
     switch ( operators )
     {
         case '+':
-            return ( num1 + num2 );
+            result = ( num1 + num2 );
             break;
         case '-':
-            return ( num1 - num2 );
+            result = ( num1 - num2 );
             break;
         case '*':
-            return ( num1 * num2 );
+            result = ( num1 * num2 );
             break;
         case '/':
             if ( num2 == 0 )
             {
-                throw invalid_argument( "Division By Zero" );
+                error = 2;
+                break;
             }
-            return ( num1 / num2 );
+            result = ( num1 / num2 );
             break;
         case '^':
-            return ( pow( num1, num2 ) );
+            result = ( pow( num1, num2 ) );
             break;
 
     }
+    ss << result;
+    return ss.str( );
 }
 
-string replaceVariable( unordered_map<string, string> &var, string expression )
+string replaceVariable( unordered_map<string, string> &var, string expression, int &error )
 {
 
-    string temp;
-    int n = expression.size( ), begin = 0;
-    if ( var.size( ) > 0 )
+    unordered_map<string, string>::const_iterator name = var.find( expression );
+    
+    if ( name != var.end( ) )
     {
-        for ( int i = 0; i < n; i++ )//look for previous declared variable and replace them
-        {
-            if ( isalpha( expression.at( i ) ) )
-            {
-
-                temp.push_back( expression.at( i ) );
-
-            }
-            if ( temp.size( ) > 0 && var.size( ) > 0 )
-            {
-                unordered_map<string, string>::const_iterator name = var.find( temp );
-
-                if ( name != var.end( ) )
-                {
-                    string tmp;
-                    tmp = expression.substr( 0, begin ) + name->second + expression.substr( i, expression.size( ) - 1 );
-                    expression = tmp;
-                    begin = 0;
-                }
-            }
-            temp.clear( );
-        }
+        expression = name->second;
     }
     else
     {
-        throw invalid_argument( "Variable Undefined" );
+        error = 1;
     }
 
     return expression;
 }
 
-string infix2postfix( string expression, unordered_map<string, string> &var )
+string infix2postfix( string expression, unordered_map<string, string> &var, int &error )
 {
     unordered_map<char, int > priority = {
         {'+', 1 },
         {'-', 1 },
         {'*', 2 },
         {'/', 2 },
-        {'^', 3 }
-    };
+        {'^', 3 } };
 
     int n = expression.size( );
     stack<char> evalu;
     string postfix, temp, tempVariable;
 
-    for ( int i = 0; i < n; i++ )
+    for ( int i = 0; i < n; i ++ )
     {
         char char_temp = expression.at( i );
 
-        if ( !isdigit( char_temp ) && temp.size( ) > 0 )
+        if ( ! isdigit( char_temp ) && temp.size( ) > 0 && char_temp != '.' )
         {
             postfix.append( temp );
             postfix.push_back( ' ' );
             temp.clear( );
         }
-        if ( !isalpha( char_temp ) && tempVariable.size( ) > 0 )
+        if ( ! isalpha( char_temp ) && tempVariable.size( ) > 0 )
         {
-            postfix.append( replaceVariable( var, tempVariable ) );
+            postfix.append( replaceVariable( var, tempVariable, error ) );
+            
+            if(error != 0)
+            {
+                return "";
+            }
+            
             postfix.push_back( ' ' );
             tempVariable.clear( );
         }
-        if ( isdigit( char_temp ) )
+        if ( isdigit( char_temp ) || char_temp == '.' )
         {
             temp.push_back( char_temp );
         }
@@ -142,7 +132,7 @@ string infix2postfix( string expression, unordered_map<string, string> &var )
         }
         else if ( char_temp == ')' )
         {
-            while ( !evalu.empty( ) && evalu.top( ) != '(' )
+            while ( ! evalu.empty( ) && evalu.top( ) != '(' )
             {
                 postfix.push_back( evalu.top( ) );
                 evalu.pop( );
@@ -159,7 +149,7 @@ string infix2postfix( string expression, unordered_map<string, string> &var )
             else
             {
 
-                while ( !evalu.empty( ) && evalu.top( ) != '(' && !isdigit( evalu.top( ) ) && char_temp != '^' && priority.at( char_temp ) <= priority.at( evalu.top( ) ) )
+                while ( ! evalu.empty( ) && evalu.top( ) != '(' && ! isdigit( evalu.top( ) ) && char_temp != '^' && priority.at( char_temp ) <= priority.at( evalu.top( ) ) )
                 {
                     postfix.push_back( evalu.top( ) );
                     evalu.pop( );
@@ -176,7 +166,13 @@ string infix2postfix( string expression, unordered_map<string, string> &var )
         postfix.push_back( ' ' );
         temp.clear( );
     }
-    while ( !evalu.empty( ) )
+    if ( tempVariable.size( ) > 0 )
+    {
+        postfix.append( replaceVariable( var, tempVariable, error ) );
+        postfix.push_back( ' ' );
+        tempVariable.clear( );
+    }
+    while ( ! evalu.empty( ) )
     {
         char tmp = evalu.top( );
         evalu.pop( );
@@ -190,34 +186,38 @@ string infix2postfix( string expression, unordered_map<string, string> &var )
 
 }
 
-double evalExpression( string expression )
+string evalExpression( string expression, int &error )
 {
     stack<string> operand;
     int n = expression.size( );
     string temp;
 
-    for ( int i = 0; i < n; i++ )
+    for ( int i = 0; i < n; i ++ )
     {
 
-        if ( expression.at( i ) == '+' || expression.at( i ) == '-' || expression.at( i ) == '*' || expression.at( i ) == '/' || expression.at( i ) == '^' )
+         if ( expression.at( i ) == '+' || expression.at( i ) == '-' || expression.at( i ) == '*' || expression.at( i ) == '/' || expression.at( i ) == '^' )
         {
             if ( operand.size( ) > 1 )
             {
-                double num2 = atof( operand.top( ).c_str( ) );
+                double num2 = stod( operand.top( ).c_str( ) );
                 operand.pop( );
-                double num1 = atof( operand.top( ).c_str( ) );
+                double num1 = stod( operand.top( ).c_str( ) );
                 operand.pop( );
 
-                operand.push( to_string( calculate( expression.at( i ), num1, num2 ) ) );
-
+                operand.push( calculate( expression.at( i ), num1, num2, error ) );
+                
+                if(error != 0)
+                {
+                    return "";
+                }
             }
         }
-        else if ( isdigit( expression.at( i ) ) )
+        else if ( isdigit( expression.at( i ) ) || expression.at( i ) == '.' )
         {
-            while ( i < n && isdigit( expression.at( i ) ) )
+            while ( i < n && ( isdigit( expression.at( i ) ) || expression.at( i ) == '.' ) )
             {
                 temp.push_back( expression.at( i ) );
-                i++;
+                i ++;
             }
         }
         if ( temp.size( ) > 0 )
@@ -226,51 +226,117 @@ double evalExpression( string expression )
             temp.clear( );
         }
     }
-    return atof( operand.top( ).c_str( ) );
+    return operand.top( ).c_str( );
+}
+
+int addVariable( string input, unordered_map<string, string > &var )
+{
+    string variable, expression;
+    int error = 0;
+    
+    while ( input.at( 0 ) != '=' )
+    {
+        variable.push_back( input.at( 0 ) );
+        input.erase( input.begin( ) );
+    }
+
+    unordered_map<string, string>::const_iterator name = var.find( variable );
+
+    expression.append( input.substr( 1, input.size( ) - 1 ) );
+    
+    expression = infix2postfix( expression, var, error );
+    
+    if ( error == 0 )
+    {
+        if ( name != var.end( ) )
+        {
+            var.erase( variable );
+            var.insert( make_pair<std::string, string>( variable.c_str( ), evalExpression( expression, error ) ) );
+        }
+        else
+        {
+            var.insert( make_pair<std::string, string>( variable.c_str( ), evalExpression( expression, error ) ) );
+        }
+    }
+    return error;
 }
 
 int main( int argc, char** argv )
 {
     unordered_map<string, string > var;
+    
+    string input;
 
-    string expression, variable, input;
-
-        while ( input != "quit" )
+    while ( input != "quit" )
+    {
+        getline( cin, input );
+        size_t let = input.find( "let" );
+        size_t quit = input.find( "quit" );
+        string expression;
+        int error = 0;
+        if (quit != string::npos )
+            break;
+        if ( let != string::npos )
         {
-            getline( cin, input );
-            size_t let = input.find( "let" );
-    
-            if ( let != string::npos )
+
+            input = deleteWhiteSpace( input );
+            input.erase( let, let + 3 );
+            addVariable( input, var );
+            
+            
+        }
+        else
+        {
+            if ( var.size( ) > 0 )
             {
-    
-                input = deleteWhiteSpace( input );
-                input.erase( let, let + 3 );
-    
-                while ( input.at( 0 ) != '=' )
+                expression = infix2postfix( input, var, error );
+                
+                if(error == 0)
                 {
-                    variable.push_back( input.at( 0 ) );
-                    input.erase( input.begin( ) );
-                }
-                expression.append( input.substr( 1, input.size( ) - 1 ) );
-    
-                expression = infix2postfix(expression, var );
-    
-                var.insert( make_pair<std::string, string>( variable.c_str( ), to_string( evalExpression( expression ) ) ) );
-            }
-            else
-            {
-                if(var.size() > 0)
-                {
-                    expression = infix2postfix(input, var );
-                    cout << evalExpression(expression) << endl;
+                    
+                    string tmp = evalExpression( expression, error );
+                        
+                    if(error == 0)
+                    {
+                        cout << tmp << endl;
+                    }
+                    else
+                    {
+                        cout << "Division-By-Zero" << endl;
+                    }
                 }
                 else
                 {
-                    cout << evalExpression(infix2postfix(input, var))<<endl;
+                    cout << "Undeclared-Variable" << endl;
+                }
+                
+            }
+            else
+            {
+                
+                string tmp = infix2postfix( input, var, error );
+                
+                if(error == 0)
+                {
+                    tmp = evalExpression( tmp , error );
+                    
+                    if(error == 0)
+                    {
+                        cout << tmp << endl;
+                    }
+                    else
+                    {
+                        cout << "Division-By-Zero" << endl;
+                    }
+                }
+                else
+                {
+                    cout << "Undeclared-Variable" << endl;
                 }
             }
-
         }
+
+    }
 
     return 0;
 }
