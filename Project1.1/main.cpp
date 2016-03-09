@@ -12,23 +12,212 @@
 #include <sstream>
 #include <math.h>
 #include <stdexcept>
-
+#define TABLE_SIZE 100
 using namespace std;
 
 /*
  * 
  */
+
+template <typename Ke, typename Va>
+class Node {
+public:
+    Node(const Ke &key, const Va &value) :
+    key(key), value(value), next(NULL) {
+    }
+
+    Ke getKey() const {
+        return key;
+    }
+
+    Va getValue() const {
+        return value;
+    }
+
+    void setValue(Va value) {
+        Node::value = value;
+    }
+
+    Node *getNext() const {
+        return next;
+    }
+
+    void setNext(Node *next) {
+        Node::next = next;
+    }
+
+private:
+    
+    Ke key;
+    Va value;
+    
+    Node *next;
+};
+
+template <typename Ke>
+struct Key2Hash {
+    unsigned long operator()(const Ke& key) const
+    {
+        return reinterpret_cast<unsigned long>(key) % TABLE_SIZE;
+    }
+};
+template < typename Ke, typename Va, typename Fq = Key2Hash< Ke > >
+class HashMap {
+public:
+    HashMap() {
+        
+        table = new Node<Ke, Va> *[TABLE_SIZE]();
+    }
+
+    bool get(const Ke &key, Va &value) {
+        unsigned long hashValue = hashFunc(key);
+        Node<Ke, Va> *entry = table[hashValue];
+
+        while (entry != NULL) {
+            if (entry->getKey() == key) {
+                value = entry->getValue();
+                return true;
+            }
+            entry = entry->getNext();
+        }
+        return false;
+    }
+
+    void put(const Ke &key, const Va &value) {
+        unsigned long hashValue = hashFunc(key);
+        Node<Ke, Va> *prev = NULL;
+        Node<Ke, Va> *entry = table[hashValue];
+
+        while (entry != NULL && entry->getKey() != key) {
+            prev = entry;
+            entry = entry->getNext();
+        }
+
+        if (entry == NULL) {
+            entry = new Node<Ke, Va>(key, value);
+            if (prev == NULL) {
+                
+                table[hashValue] = entry;
+            } else {
+                prev->setNext(entry);
+            }
+        } else {
+            entry->setValue(value);
+        }
+    }
+
+    void remove(const Ke &key) {
+        unsigned long hashValue = hashFunc(key);
+        Node<Ke, Va> *prev = NULL;
+        Node<Ke, Va> *entry = table[hashValue];
+
+        while (entry != NULL && entry->getKey() != key) {
+            prev = entry;
+            entry = entry->getNext();
+        }
+
+        if (entry == NULL) {
+            
+            return;
+        }
+        else {
+            if (prev == NULL) {
+                
+                table[hashValue] = entry->getNext();
+            } else {
+                prev->setNext(entry->getNext());
+            }
+            delete entry;
+        }
+    }
+    
+    ~HashMap() {
+        
+        for (int i = 0; i < TABLE_SIZE; ++i) {
+            Node<Ke, Va> *entry = table[i];
+            while (entry != NULL) {
+                Node<Ke, Va> *prev = entry;
+                entry = entry->getNext();
+                delete prev;
+            }
+            table[i] = NULL;
+        }
+        
+        delete [] table;
+    }
+
+private:
+    
+    Node<Ke, Va> **table;
+    Fq hashFunc;
+};
 string deleteWhiteSpace( string expression )
 {
-    int n = expression.size( );
+    int n = expression.size( ), i =0;
     string temp;
-
-    for ( int i = 0; i < n; i ++ )
+    
+    while(i < n)
     {
         if ( expression.at( i ) != ' ' )
         {
-            temp.push_back( expression.at( i ) );
+            
+            if (i == 0 && (expression.at(i) == '-' || expression.at(i) == '+')) {
+                temp.push_back('(');
+                temp.push_back('0');
+                temp.push_back( expression.at( i ) );
+                i++;
+                while(i<n && (isdigit(expression.at( i ))))
+                {
+                    temp.push_back( expression.at( i ) );
+                    i++;
+                }
+                temp.push_back(')');
+            } else if ( i >= 1 && temp.size()> 0 && (temp.at(temp.size() - 1) == '(' || temp.at(temp.size()-1) == '/'  || temp.at(temp.size()-1) == '*'|| temp.at(temp.size()-1) == '^')&& (expression.at(i) == '-' || expression.at(i) == '+')) {
+                temp.push_back('(');
+                temp.push_back('0');
+                temp.push_back( expression.at( i ) );
+                i++;
+                while(i<n && (isdigit(expression.at( i )) ))
+                {
+                    
+                    temp.push_back( expression.at( i ) );
+                    i++;
+                }
+                temp.push_back(')');
+            } else if(i +1<n && (expression.at(i) == 'e' ) && (expression.at(i+1) == '-' || expression.at(i+1) == '+'))
+            {
+                temp.push_back('*');
+                temp.push_back('1');
+                temp.push_back('0');
+                temp.push_back('^');
+                
+                temp.push_back('(');
+                temp.push_back('0');
+                i++;
+                temp.push_back( expression.at( i ) );              
+                i++;
+               
+                while(i<n && (isdigit(expression.at( i )) ))
+                {
+                    
+                    temp.push_back( expression.at( i ) );
+                    i++;
+                }
+                temp.push_back(')');
+            }
+            else
+            {
+                temp.push_back( expression.at( i ) );
+                i++;
+                
+            }
+            
         }
+        else if(expression.at( i ) == ' ')
+            {
+                i++;
+            }
+        
     }
     return temp;
 }
@@ -73,24 +262,19 @@ string replaceVariable( unordered_map<string, string> &var, string expression, i
     
     if ( name != var.end( ) )
     {
-        expression = name->second;
+        expression = deleteWhiteSpace(name->second);
     }
     else
     {
         error = 1;
     }
-
+    
     return expression;
 }
 
 string infix2postfix( string expression, unordered_map<string, string> &var, int &error )
 {
-    unordered_map<char, int > priority = {
-        {'+', 1 },
-        {'-', 1 },
-        {'*', 2 },
-        {'/', 2 },
-        {'^', 3 } };
+    unordered_map<char, int > priority = { {'+', 1 }, {'-', 1 }, {'*', 2 }, {'/', 2 }, {'^', 3 } };
 
     int n = expression.size( );
     stack<char> evalu;
@@ -108,15 +292,26 @@ string infix2postfix( string expression, unordered_map<string, string> &var, int
         }
         if ( ! isalpha( char_temp ) && tempVariable.size( ) > 0 )
         {
-            postfix.append( replaceVariable( var, tempVariable, error ) );
+            string str = replaceVariable( var, tempVariable, error );
+            
             
             if(error != 0)
             {
                 return "";
             }
+            else
+            {
+                
+                postfix.append( str );
+                
+                if(error!=0)
+                {
+                    return "";
+                }
+                postfix.push_back( ' ' );
+                tempVariable.clear( );
+            }
             
-            postfix.push_back( ' ' );
-            tempVariable.clear( );
         }
         if ( isdigit( char_temp ) || char_temp == '.' )
         {
@@ -144,6 +339,7 @@ string infix2postfix( string expression, unordered_map<string, string> &var, int
             if ( evalu.empty( ) || evalu.top( ) == '(' )
             {
                 evalu.push( char_temp );
+                
             }
 
             else
@@ -168,7 +364,17 @@ string infix2postfix( string expression, unordered_map<string, string> &var, int
     }
     if ( tempVariable.size( ) > 0 )
     {
-        postfix.append( replaceVariable( var, tempVariable, error ) );
+        string str1 = replaceVariable( var, tempVariable, error );
+        if(error !=0)
+        {
+            return "";
+        }
+        string str = infix2postfix(str1, var, error);
+        if (error !=0)
+        {
+            return "";
+        }
+        postfix.append( str );
         postfix.push_back( ' ' );
         tempVariable.clear( );
     }
@@ -186,7 +392,7 @@ string infix2postfix( string expression, unordered_map<string, string> &var, int
 
 }
 
-string evalExpression( string expression, int &error )
+string evalExpression( string expression, unordered_map<string, string > &var, int &error )
 {
     stack<string> operand;
     int n = expression.size( );
@@ -195,7 +401,7 @@ string evalExpression( string expression, int &error )
     for ( int i = 0; i < n; i ++ )
     {
 
-         if ( expression.at( i ) == '+' || expression.at( i ) == '-' || expression.at( i ) == '*' || expression.at( i ) == '/' || expression.at( i ) == '^' )
+        if ( expression.at( i ) == '+' || expression.at( i ) == '-' || expression.at( i ) == '*' || expression.at( i ) == '/' || expression.at( i ) == '^' )
         {
             if ( operand.size( ) > 1 )
             {
@@ -211,13 +417,30 @@ string evalExpression( string expression, int &error )
                     return "";
                 }
             }
-        }
-        else if ( isdigit( expression.at( i ) ) || expression.at( i ) == '.' )
-        {
-            while ( i < n && ( isdigit( expression.at( i ) ) || expression.at( i ) == '.' ) )
+            else if(operand.size( ) == 1 )
             {
-                temp.push_back( expression.at( i ) );
-                i ++;
+                double num2 = stod( operand.top( ).c_str( ) );
+                operand.pop( );
+                double num1 = 0;
+
+                operand.push( calculate( expression.at( i ), num1, num2, error ) );
+                
+                if(error != 0)
+                {
+                    return "";
+                }
+            }
+            
+            
+        }
+        else if ( isdigit( expression.at( i ) ) || expression.at( i ) == '.')
+        {
+            while ( i < n && ( isdigit( expression.at( i ) ) || expression.at( i ) == '.' || (i+1< n && (expression.at( i ) == 'e' && expression.at( i+1 ) == '+') ||(expression.at( i ) == '+' && expression.at( i-1 ) == 'e') ) ) )
+            {
+             
+                    temp.push_back( expression.at( i ) );
+                    i ++;
+                
             }
         }
         if ( temp.size( ) > 0 )
@@ -251,11 +474,11 @@ int addVariable( string input, unordered_map<string, string > &var )
         if ( name != var.end( ) )
         {
             var.erase( variable );
-            var.insert( make_pair<std::string, string>( variable.c_str( ), evalExpression( expression, error ) ) );
+            var.insert( make_pair<std::string, string>( variable.c_str( ), evalExpression( expression, var, error ) ) );
         }
         else
         {
-            var.insert( make_pair<std::string, string>( variable.c_str( ), evalExpression( expression, error ) ) );
+            var.insert( make_pair<std::string, string>( variable.c_str( ), evalExpression( expression, var, error ) ) );
         }
     }
     return error;
@@ -264,29 +487,46 @@ int addVariable( string input, unordered_map<string, string > &var )
 int main( int argc, char** argv )
 {
     unordered_map<string, string > var;
+    HashMap<string,string,Key2Hash<string>> var1;
     
     string input;
 
     while ( input != "quit" )
     {
         getline( cin, input );
-        size_t let = input.find( "let" );
-        size_t quit = input.find( "quit" );
+        
         string expression;
+        string temp;
         int error = 0;
-        if (quit != string::npos )
+        
+        int i=0;
+        while(i<input.size())
+        {
+            if(input.at(i) != ' ')
+            {
+                input = input.substr(i,input.size());
+                break;
+            }
+            i++;
+        }
+        
+        size_t let = input.find( "let " );
+        int quit = input.compare( "quit" );
+        input = deleteWhiteSpace( input );
+        if ( quit ==  0)
             break;
-        if ( let != string::npos )
+        if (  let != string::npos )
         {
 
-            input = deleteWhiteSpace( input );
+            
             input.erase( let, let + 3 );
             addVariable( input, var );
             
             
         }
-        else
+        else if(input.size()>0 )
         {
+            input = deleteWhiteSpace( input );
             if ( var.size( ) > 0 )
             {
                 expression = infix2postfix( input, var, error );
@@ -294,7 +534,7 @@ int main( int argc, char** argv )
                 if(error == 0)
                 {
                     
-                    string tmp = evalExpression( expression, error );
+                    string tmp = evalExpression( expression,var, error );
                         
                     if(error == 0)
                     {
@@ -318,7 +558,7 @@ int main( int argc, char** argv )
                 
                 if(error == 0)
                 {
-                    tmp = evalExpression( tmp , error );
+                    tmp = evalExpression( tmp ,var, error );
                     
                     if(error == 0)
                     {
