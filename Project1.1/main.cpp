@@ -56,9 +56,12 @@ private:
 
 template <typename Ke>
 struct Key2Hash {
+    
     unsigned long operator()(const Ke& key) const
     {
-        return reinterpret_cast<unsigned long>(key) % TABLE_SIZE;
+        std::hash<Ke> temp;
+        return reinterpret_cast<unsigned long>(temp(key)) % TABLE_SIZE;
+        
     }
 };
 template < typename Ke, typename Va, typename Fq = Key2Hash< Ke > >
@@ -67,8 +70,18 @@ public:
     HashMap() {
         
         table = new Node<Ke, Va> *[TABLE_SIZE]();
+        size=0;
     }
-
+    bool empty() {
+        if(size == 0)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
     bool get(const Ke &key, Va &value) {
         unsigned long hashValue = hashFunc(key);
         Node<Ke, Va> *entry = table[hashValue];
@@ -101,8 +114,10 @@ public:
             } else {
                 prev->setNext(entry);
             }
+            size++;
         } else {
             entry->setValue(value);
+            size++;
         }
     }
 
@@ -127,6 +142,7 @@ public:
             } else {
                 prev->setNext(entry->getNext());
             }
+            size--;
             delete entry;
         }
     }
@@ -150,6 +166,7 @@ private:
     
     Node<Ke, Va> **table;
     Fq hashFunc;
+    int size;
 };
 string deleteWhiteSpace( string expression )
 {
@@ -184,26 +201,27 @@ string deleteWhiteSpace( string expression )
                     i++;
                 }
                 temp.push_back(')');
-            } else if(i +1<n && (expression.at(i) == 'e' ) && (expression.at(i+1) == '-' || expression.at(i+1) == '+'))
-            {
-                temp.push_back('*');
-                temp.push_back('1');
-                temp.push_back('0');
-                temp.push_back('^');
-                
-                temp.push_back('(');
-                temp.push_back('0');
-                i++;
-                temp.push_back( expression.at( i ) );              
-                i++;
-               
-                while(i<n && (isdigit(expression.at( i )) ))
-                {
-                    
-                    temp.push_back( expression.at( i ) );
-                    i++;
-                }
-                temp.push_back(')');
+//            } else if(i +1<n && (expression.at(i) == 'e' ) && (expression.at(i+1) == '-' || expression.at(i+1) == '+'))
+//            {
+//                temp.push_back('*');
+//                temp.push_back('1');
+//                temp.push_back('0');
+//                temp.push_back('^');
+//                
+//                temp.push_back('(');
+//                temp.push_back('0');
+//                i++;
+//                temp.push_back( expression.at( i ) );              
+//                i++;
+//               
+//                while(i<n && (isdigit(expression.at( i )) ))
+//                {
+//                    
+//                    temp.push_back( expression.at( i ) );
+//                    i++;
+//                }
+//                temp.push_back(')');
+//            }attemp for exponent in variable
             }
             else
             {
@@ -255,14 +273,12 @@ string calculate( char operators, double num1, double num2, int &error )
     return ss.str( );
 }
 
-string replaceVariable( unordered_map<string, string> &var, string expression, int &error )
+string replaceVariable( HashMap<string,string,Key2Hash<string>> &var, string expression, int &error )
 {
-
-    unordered_map<string, string>::const_iterator name = var.find( expression );
-    
-    if ( name != var.end( ) )
+    string temp;
+    if ( var.get(expression, temp) )
     {
-        expression = deleteWhiteSpace(name->second);
+        expression = deleteWhiteSpace(temp);
     }
     else
     {
@@ -272,9 +288,14 @@ string replaceVariable( unordered_map<string, string> &var, string expression, i
     return expression;
 }
 
-string infix2postfix( string expression, unordered_map<string, string> &var, int &error )
+string infix2postfix( string expression,HashMap<string,string,Key2Hash<string>> &var, int &error )
 {
-    unordered_map<char, int > priority = { {'+', 1 }, {'-', 1 }, {'*', 2 }, {'/', 2 }, {'^', 3 } };
+    HashMap<char,int,Key2Hash<char>> priority;// = { {'+', 1 }, {'-', 1 }, {'*', 2 }, {'/', 2 }, {'^', 3 } }
+    priority.put('+',1);
+    priority.put('-',1);
+    priority.put('*',2);
+    priority.put('/',2);
+    priority.put('^',3);
 
     int n = expression.size( );
     stack<char> evalu;
@@ -344,11 +365,18 @@ string infix2postfix( string expression, unordered_map<string, string> &var, int
 
             else
             {
-
-                while ( ! evalu.empty( ) && evalu.top( ) != '(' && ! isdigit( evalu.top( ) ) && char_temp != '^' && priority.at( char_temp ) <= priority.at( evalu.top( ) ) )
+                int tempnum;
+                priority.get( char_temp, tempnum);
+                int tempnum1;
+                priority.get( evalu.top( ), tempnum1);
+                
+                while ( ! evalu.empty( ) && evalu.top( ) != '(' && ! isdigit( evalu.top( ) ) && char_temp != '^' && tempnum  <= tempnum1 )
                 {
                     postfix.push_back( evalu.top( ) );
                     evalu.pop( );
+                    if(!evalu.empty()){
+                    priority.get( evalu.top( ), tempnum1);
+                    }
                 }
 
                 evalu.push( char_temp );
@@ -392,7 +420,7 @@ string infix2postfix( string expression, unordered_map<string, string> &var, int
 
 }
 
-string evalExpression( string expression, unordered_map<string, string > &var, int &error )
+string evalExpression( string expression, HashMap<string,string,Key2Hash<string>> &var, int &error )
 {
     stack<string> operand;
     int n = expression.size( );
@@ -452,7 +480,7 @@ string evalExpression( string expression, unordered_map<string, string > &var, i
     return operand.top( ).c_str( );
 }
 
-int addVariable( string input, unordered_map<string, string > &var )
+int addVariable( string input, HashMap<string,string,Key2Hash<string>> &var )
 {
     string variable, expression;
     int error = 0;
@@ -463,22 +491,23 @@ int addVariable( string input, unordered_map<string, string > &var )
         input.erase( input.begin( ) );
     }
 
-    unordered_map<string, string>::const_iterator name = var.find( variable );
+ 
 
     expression.append( input.substr( 1, input.size( ) - 1 ) );
     
     expression = infix2postfix( expression, var, error );
-    
+    string temp;
     if ( error == 0 )
     {
-        if ( name != var.end( ) )
+        if ( var.get(variable, temp) )
         {
-            var.erase( variable );
-            var.insert( make_pair<std::string, string>( variable.c_str( ), evalExpression( expression, var, error ) ) );
+            var.remove( variable );
+            var.put( variable, evalExpression( expression, var, error ) );
         }
         else
         {
-            var.insert( make_pair<std::string, string>( variable.c_str( ), evalExpression( expression, var, error ) ) );
+            
+            var.put( variable, evalExpression( expression, var, error ) );
         }
     }
     return error;
@@ -486,8 +515,7 @@ int addVariable( string input, unordered_map<string, string > &var )
 
 int main( int argc, char** argv )
 {
-    unordered_map<string, string > var;
-    HashMap<string,string,Key2Hash<string>> var1;
+    HashMap<string,string,Key2Hash<string>> var;
     
     string input;
 
@@ -526,8 +554,7 @@ int main( int argc, char** argv )
         }
         else if(input.size()>0 )
         {
-            input = deleteWhiteSpace( input );
-            if ( var.size( ) > 0 )
+            if ( !var.empty() )
             {
                 expression = infix2postfix( input, var, error );
                 
